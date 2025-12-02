@@ -15,9 +15,9 @@ Script Python untuk mengkonversi file SQL dump menjadi file Excel (.xlsx) dengan
 
 ## Instalasi
 
-### 1. Clone atau Download Repository
-
+### 1. Clone Repository
 ```bash
+git clone https://github.com/muflifadla38/sql-to-excel.git
 cd sql-to-excel
 ```
 
