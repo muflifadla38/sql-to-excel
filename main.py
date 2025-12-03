@@ -13,10 +13,10 @@ def parse_sql_file(sql_file_path):
     tables = {}
 
     # Pattern to match CREATE TABLE statements
-    create_table_pattern = r'CREATE TABLE IF NOT EXISTS `(\w+)`\s*\((.*?)\)\s*ENGINE'
+    create_table_pattern = r'CREATE TABLE `(\w+)`\s*\((.*?)\)\s*ENGINE'
 
     matches = re.finditer(create_table_pattern, content, re.DOTALL | re.IGNORECASE)
-
+    print("matches", matches)
     for match in matches:
         table_name = match.group(1)
         table_definition = match.group(2)
@@ -44,20 +44,25 @@ def parse_sql_file(sql_file_path):
                 if column_type.endswith(','):
                     column_type = column_type[:-1].strip()
 
-                # Clean up the type (remove extra keywords and character sets)
-                # Remove CHARACTER SET and COLLATE
-                column_type = re.sub(r'\s+CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci', '', column_type, flags=re.IGNORECASE)
-                column_type = re.sub(r'\s+CHARACTER SET utf8mb4 COLLATE utf8mb4_bin', '', column_type, flags=re.IGNORECASE)
-                column_type = re.sub(r'\s+CHARACTER SET \w+ COLLATE \w+', '', column_type, flags=re.IGNORECASE)
-
+                # Clean up the type - more comprehensive removal of SQL metadata
+                # Remove COLLATE clauses (any collation)
+                column_type = re.sub(r'\s+COLLATE\s+\w+', '', column_type, flags=re.IGNORECASE)
+                
+                # Remove CHARACTER SET clauses
+                column_type = re.sub(r'\s+CHARACTER SET\s+\w+', '', column_type, flags=re.IGNORECASE)
+                
                 # Remove constraints and metadata
                 column_type = re.sub(r'\s+NOT NULL', '', column_type, flags=re.IGNORECASE)
+                column_type = re.sub(r'\s+NULL', '', column_type, flags=re.IGNORECASE)
                 column_type = re.sub(r'\s+AUTO_INCREMENT', '', column_type, flags=re.IGNORECASE)
-                column_type = re.sub(r'\s+DEFAULT\s+.*', '', column_type, flags=re.IGNORECASE)  # Remove DEFAULT and everything after it
-                column_type = re.sub(r'\s+NULL\s*$', '', column_type, flags=re.IGNORECASE)  # Remove NULL at end only
-                column_type = re.sub(r'\s+COMMENT\s+.*', '', column_type, flags=re.IGNORECASE)
-                column_type = re.sub(r'\s+ON UPDATE.*', '', column_type, flags=re.IGNORECASE)
-                column_type = column_type.strip()
+                column_type = re.sub(r'\s+DEFAULT\s+.*?(?=\s+|$)', '', column_type, flags=re.IGNORECASE)
+                column_type = re.sub(r'\s+COMMENT\s+.*?(?=\s+|$)', '', column_type, flags=re.IGNORECASE)
+                column_type = re.sub(r'\s+ON UPDATE\s+.*?(?=\s+|$)', '', column_type, flags=re.IGNORECASE)
+                column_type = re.sub(r'\s+UNIQUE', '', column_type, flags=re.IGNORECASE)
+                column_type = re.sub(r'\s+PRIMARY', '', column_type, flags=re.IGNORECASE)
+                
+                # Clean up extra whitespace
+                column_type = re.sub(r'\s+', ' ', column_type).strip()
 
                 columns.append({
                     'name': column_name,
